@@ -10,8 +10,10 @@ dNBR burn severity.
 > revisit per path; commercial thermal constellations operate at another
 > level entirely. This maps the problem, not their product.
 
-**Status:** phase 001 (pipeline) complete — see `figuras/`. Web viewer and
-write-up in progress.
+**Live:** [interactive viewer](https://alexmatosolive.com/labs/incendio) ·
+[write-up](https://alexmatosolive.com/blog/watching-a-wildfire-in-thermal)
+
+![Before, during and after the fire in land surface temperature](figuras/a_lst_antes_durante_despues.png)
 
 ## What it shows
 
@@ -24,6 +26,9 @@ write-up in progress.
   ~35,268 ha officially affected — the gap itself is informative (official
   figures count the total perimeter; dNBR ≥ 0.27 excludes low-severity and
   unburned islands). `data/derived/stats.json` has the breakdown.
+
+![Optical vs thermal, fire day 5](figuras/b_rgb_vs_termico_20260721_zoom.png)
+![dNBR burn severity](figuras/c_dnbr_severidad.png)
 
 ## Reproduce
 
