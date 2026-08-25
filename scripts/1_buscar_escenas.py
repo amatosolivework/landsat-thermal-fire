@@ -28,6 +28,12 @@ def fetch_band(href: str, out_path: Path) -> str:
     with rasterio.open(href) as src:
         bounds = transform_bounds("EPSG:4326", src.crs, *config.AOI)
         window = from_bounds(*bounds, transform=src.transform)
+        # the AOI may exceed the scene footprint (path 201 vs the eastern
+        # AOI): clip the window to the raster, keep what overlaps
+        full = rasterio.windows.Window(0, 0, src.width, src.height)
+        window = window.intersection(full).round_offsets().round_lengths()
+        if window.width <= 0 or window.height <= 0:
+            return "no-overlap"
         data = src.read(1, window=window)
         transform = src.window_transform(window)
         profile = src.profile | {

@@ -9,7 +9,14 @@ Fire chronology (press-verified, 2026-08-25):
 """
 
 # --- Area of interest (WGS84 lon/lat) --------------------------------------
-AOI = (-3.45, 40.85, -3.05, 41.10)  # west, south, east, north
+# The fire ran ~60 km NE from La Mierla towards Atienza before control; the
+# first, narrower AOI captured only its SW tail (dNBR 6.2 kha vs 35 kha
+# official — caught by the pipeline invariant). Widened 2026-08-25.
+AOI = (-3.55, 40.80, -2.70, 41.30)  # west, south, east, north
+
+# NOTE: path 201 scenes do not cover the eastern part of this AOI; their
+# windows are clipped to the scene footprint at ingestion and the missing
+# area is NaN. dNBR (pre/post, both path 200) covers the full AOI.
 
 # --- Common output grid -----------------------------------------------------
 GRID_CRS = "EPSG:32630"  # UTM 30N
