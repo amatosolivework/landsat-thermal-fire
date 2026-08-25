@@ -143,15 +143,50 @@ def main() -> None:
     Image.fromarray(palette[np.clip(classes, 0, 4)]).save(out / "dnbr.png", optimize=True)
     shapes.add(dnbr.shape)
 
-    # comparator: crop of the burn scar (padded bbox), 21 Jul = fire day 5
+    # comparator: tight crop of the burn scar. The during scene is chosen
+    # automatically: path-201 scenes have their footprint diagonal crossing
+    # the crop (a big white wedge in the image), so prefer whichever fire-day
+    # scene covers the crop completely, and among those the earliest.
     scar_rows, scar_cols = np.where(classes > 0)
-    pr, pc = int(0.2 * np.ptp(scar_rows)), int(0.2 * np.ptp(scar_cols))
+    pr, pc = int(0.12 * np.ptp(scar_rows)), int(0.12 * np.ptp(scar_cols))
     sl = np.s_[max(scar_rows.min() - pr, 0):scar_rows.max() + pr,
                max(scar_cols.min() - pc, 0):scar_cols.max() + pc]
-    rgb, _, _ = to_3857(D / "rgb_20260721_during.tif")
-    lst21, _, _ = to_3857(D / "lst_20260721_during_raw.tif")
+    candidates = []
+    for date in ("20260721", "20260729", "20260730"):
+        rgb, _, _ = to_3857(D / f"rgb_{date}_during.tif")
+        coverage = float(np.isfinite(rgb[0][sl]).mean())
+        candidates.append((date, coverage, rgb))
+    full = [c for c in candidates if c[1] > 0.999]
+    date, coverage, rgb = full[0] if full else max(candidates, key=lambda c: c[1])
+    # no scene covers the scar bbox completely (the westmost tail falls off
+    # the path-200 footprint): trim the crop to the largest run of fully
+    # valid columns/rows so the hero image has no white footprint wedge
+    finite = np.isfinite(rgb[0][sl])
+    col_ok = np.flatnonzero(finite.mean(axis=0) > 0.995)
+    row_ok = np.flatnonzero(finite[:, col_ok[0]:col_ok[-1] + 1].mean(axis=1) > 0.995)
+    sl = np.s_[sl[0].start + row_ok[0]:sl[0].start + row_ok[-1] + 1,
+               sl[1].start + col_ok[0]:sl[1].start + col_ok[-1] + 1]
+    # the scar runs SW->NE so the trimmed crop is very tall; frame the main
+    # fire mass instead: window of ~1.05x the width, centred on the scar's
+    # burned-pixel row centroid, so the hero image stays close to square
+    h, w_px = sl[0].stop - sl[0].start, sl[1].stop - sl[1].start
+    target_h = int(1.05 * w_px)
+    if h > target_h:
+        scar_in = classes[sl] > 0
+        centroid = int(np.round(np.average(np.arange(h),
+                                           weights=scar_in.sum(axis=1) + 1e-6)))
+        top = min(max(centroid - target_h // 2, 0), h - target_h)
+        sl = np.s_[sl[0].start + top:sl[0].start + top + target_h, sl[1]]
+    print(f"comparator: {date} (raw coverage {coverage:.1%}, framed to "
+          f"{(sl[0].stop - sl[0].start)}x{(sl[1].stop - sl[1].start)} px)",
+          file=sys.stderr)
+    lst_cmp, _, _ = to_3857(D / f"lst_{date}_during_raw.tif")
     save_rgb(rgb[:, sl[0], sl[1]], out / "comparator_rgb.png")
-    save_colormapped(lst21[sl], out / "comparator_lst.png")
+    save_colormapped(lst_cmp[sl], out / "comparator_lst.png")
+    from datetime import date as date_cls
+    d = date_cls(int(date[:4]), int(date[4:6]), int(date[6:]))
+    fire_day = (d - date_cls(*map(int, config.FIRE_START.split("-")))).days + 1
+    comparator_meta = {"date": d.isoformat(), "fire_day": fire_day}
 
     stats = json.loads((D / "stats.json").read_text())
     meta = {
@@ -161,6 +196,7 @@ def main() -> None:
                          "lst_min": LST_MIN, "lst_max": LST_MAX},
         "layers": [{"key": k, "date": d, "role": k.rstrip("123")}
                    for k, (_, d) in LAYERS.items()],
+        "comparator": comparator_meta,
         "dnbr_legend": [
             {"label": "low", "color": DNBR_COLORS[1]},
             {"label": "moderate-low", "color": DNBR_COLORS[2]},
