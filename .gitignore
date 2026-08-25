@@ -1,0 +1,10 @@
+# datos crudos y derivados: GBs de GeoTIFF, se regeneran con los scripts (ver README)
+/data/
+
+# entorno python
+.venv/
+__pycache__/
+*.pyc
+
+# sistema
+.DS_Store
