@@ -28,7 +28,11 @@ LinkedIn a Aistech; ver `Projects/Practicas UB/mensajes-aistech-sdg.md`).
 - No reimplementar corrección de emisividad: usar LST del producto USGS L2 y explicarlo.
 - Repo privado hasta que el README esté terminado; público en fase 003.
 
+- **Fase 002 COMPLETADA** (2026-08-25): export 2,6 MB + página `/labs/incendio`
+  funcionando y verificada en navegador (portfolio commit `edaf21a`).
+  Ver `002-01-SUMMARY.md`.
+
 ## Próximo paso
-Fase 002-export-y-web: script 4 (export PNG+JSON a `portfolio/public/data/incendio/`)
-y página `/labs/incendio` en el repo portfolio (comparador RGB/térmico, mapa
-MapLibre, números). Planificar en `.planning/phases/002-export-y-web/`.
+Fase 003-publicacion: post MDX en el blog del portfolio, README final, repo a
+GitHub público (cuenta amatosolivework), deploy Vercel, y revisar los mensajes
+de LinkedIn (quitar "ver a través del humo" y "corrigiendo por emisividad").
