@@ -30,9 +30,14 @@ LinkedIn a Aistech; ver `Projects/Practicas UB/mensajes-aistech-sdg.md`).
 
 - **Fase 002 COMPLETADA** (2026-08-25): export 2,6 MB + página `/labs/incendio`
   funcionando y verificada en navegador (portfolio commit `edaf21a`).
-  Ver `002-01-SUMMARY.md`.
+- **Fase 003 COMPLETADA — PROYECTO CERRADO** (2026-08-25). Los tres enlaces
+  vivos y verificados en producción:
+  visor https://alexmatosolive.com/labs/incendio ·
+  post https://alexmatosolive.com/blog/watching-a-wildfire-in-thermal ·
+  repo https://github.com/amatosolivework/landsat-thermal-fire
+  Mensajes LinkedIn actualizados con resultados reales (⚠️ resuelto).
 
 ## Próximo paso
-Fase 003-publicacion: post MDX en el blog del portfolio, README final, repo a
-GitHub público (cuenta amatosolivework), deploy Vercel, y revisar los mensajes
-de LinkedIn (quitar "ver a través del humo" y "corrigiendo por emisividad").
+Ninguno en este repo. Lo que queda es de la campaña de prácticas (fuera de este
+repo): enviar los mensajes la primera semana de septiembre —
+ver `Projects/Practicas UB/mensajes-aistech-sdg.md`.
