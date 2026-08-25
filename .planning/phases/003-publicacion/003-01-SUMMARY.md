@@ -27,3 +27,15 @@ Pipeline reproducible en 4 comandos + venv. Deuda consciente: basemap Carto en
 runtime; página no enlazada en la nav del sitio (accesible vía post y URL).
 Posible evolución futura (no planificada): más incendios, serie temporal,
 procesado de Sentinel-3 para revisita diaria.
+
+## Retoque post-cierre (feedback de Alex, mismo día)
+
+Los overlays a raster completo se veían como trapecios "pegados" (footprint de
+escena) y el scroll de trackpad secuestraba el zoom. Cambios:
+- Alpha por píxel horneado en el PNG desde el z-score (smoothstep 2σ→5σ):
+  solo se dibuja lo anómalo; pre queda vacío a propósito (0,0% visible,
+  29-jul 5,7%, post 2,0%). Copy añadido bajo el mapa explicándolo.
+- Paleta de mapa YlOrRd (35–65 °C) — magma empieza en negro y sobre basemap
+  claro leía como manchas de tinta. Comparador sigue en magma 20–65.
+- `cooperativeGestures: true` — el scroll pasa a la página; zoom con ⌘+scroll.
+- Script 3 ahora emite z-score también para pre/post.

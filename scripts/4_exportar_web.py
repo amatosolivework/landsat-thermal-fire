@@ -28,7 +28,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import config
 
 D = config.DATA_DERIVED
-LST_MIN, LST_MAX = 20.0, 65.0
+LST_MIN, LST_MAX = 20.0, 65.0   # value-encoding + comparator scale
+MAP_VMIN = 35.0                 # map layers: only anomalies are visible,
+                                # keep them in the warm part of the ramp
 DOWNSAMPLE = 2
 
 LAYERS = {  # key -> (derived file, date label)
@@ -67,13 +69,32 @@ def bounds_lonlat(transform: rasterio.Affine, shape: tuple[int, int]) -> list:
     return [round(v, 6) for v in (w_, s, e, n)]
 
 
-def save_colormapped(data: np.ndarray, out: Path) -> None:
-    norm = np.clip(np.nan_to_num(data, nan=LST_MIN) - LST_MIN, 0, LST_MAX - LST_MIN)
-    rgba = (colormaps["magma"](norm / (LST_MAX - LST_MIN)) * 255).astype("uint8")
-    rgba[..., 3] = np.where(np.isfinite(data), 255, 0)
+def save_colormapped(data: np.ndarray, out: Path,
+                     alpha: np.ndarray | None = None,
+                     vmin: float = LST_MIN, cmap: str = "magma") -> None:
+    """Colormapped PNG. With `alpha` (0-1), thermally normal terrain fades
+    out and the overlay reads as an organic heat blob on the basemap instead
+    of a pasted scene-footprint trapezoid. Map layers use YlOrRd on a
+    narrower scale: it starts light and warm, so even the coolest visible
+    anomaly reads as heat on a light basemap (magma starts near black and
+    reads as ink stains there); the comparator keeps magma's full drama."""
+    norm = np.clip(np.nan_to_num(data, nan=vmin) - vmin, 0, LST_MAX - vmin)
+    rgba = (colormaps[cmap](norm / (LST_MAX - vmin)) * 255).astype("uint8")
+    if alpha is None:
+        rgba[..., 3] = np.where(np.isfinite(data), 255, 0)
+    else:
+        a = np.where(np.isfinite(data), np.nan_to_num(alpha, nan=0.0), 0.0)
+        rgba[..., 3] = (np.clip(a, 0, 1) * 255).astype("uint8")
     # palette-quantized PNG8: ~60% smaller than truecolor, no visible loss
     Image.fromarray(rgba).quantize(256, method=Image.Quantize.FASTOCTREE).save(
         out, optimize=True)
+
+
+def anomaly_alpha(z: np.ndarray) -> np.ndarray:
+    """Opacity ramp on the thermal z-score: invisible below 2σ, fully
+    visible from 5σ. Slightly smoothstepped so edges feather naturally."""
+    t = np.clip((z - 2.0) / 3.0, 0, 1)
+    return (t * t * (3 - 2 * t)) * 0.92
 
 
 def save_values(data: np.ndarray, out: Path) -> None:
@@ -103,13 +124,17 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
 
     shapes, bounds = set(), None
-    for key, (fname, _) in LAYERS.items():
+    for key, (fname, date_label) in LAYERS.items():
         lst, transform, _ = to_3857(D / fname)
-        save_colormapped(lst, out / f"lst_{key}.png")
+        date = date_label.replace("-", "")
+        z, _, _ = to_3857(D / f"zscore_{date}.tif")
+        save_colormapped(lst, out / f"lst_{key}.png", alpha=anomaly_alpha(z),
+                         vmin=MAP_VMIN, cmap="YlOrRd")
         save_values(lst, out / f"val_{key}.png")
         shapes.add(lst.shape)
         bounds = bounds_lonlat(transform, lst.shape)
-        print(f"layer {key}: {lst.shape}", file=sys.stderr)
+        print(f"layer {key}: {lst.shape}  visible px: "
+              f"{(anomaly_alpha(z) > 0.05).mean():.1%}", file=sys.stderr)
 
     dnbr, transform, _ = to_3857(D / "dnbr_class.tif")
     classes = np.round(np.nan_to_num(dnbr, nan=0)).astype("uint8")

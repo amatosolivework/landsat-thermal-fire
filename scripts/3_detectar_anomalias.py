@@ -69,22 +69,27 @@ def main() -> None:
     write_like("baseline_std.tif", std)
     check(usable.mean() > 0.45, f"only {usable.mean():.0%} of pixels have a usable baseline")
 
-    # --- z-scores for the during scenes (RAW lst: smoke may be QA-flagged) ---
+    # --- z-scores (RAW lst: smoke may be QA-flagged) -------------------------
+    # during scenes drive the anomaly accounting; pre/post get a z raster too
+    # so the web overlay can fade to transparent wherever nothing is anomalous
     anomaly_union = np.zeros(mean.shape, dtype=bool)
     z_stats = {}
-    for date, _ in scenes_by_role("during"):
-        lst = read(f"lst_{date}_during_raw.tif")
-        z = (lst - mean) / std
-        anomaly = np.where(np.isfinite(z), z > config.ZSCORE_THRESHOLD, False)
-        write_like(f"zscore_{date}.tif", z)
-        write_like(f"anomaly_{date}.tif", anomaly)
-        anomaly_union |= anomaly
-        z_stats[date] = {
-            "anomaly_ha": round(float(anomaly.sum() * px_ha)),
-            "z_max": round(float(np.nanmax(z)), 1),
-            "lst_max_c": round(float(np.nanmax(lst)), 1),
-        }
-        print(f"during {date}: {z_stats[date]}", file=sys.stderr)
+    for role in ("pre", "during", "post"):
+        for date, _ in scenes_by_role(role):
+            lst = read(f"lst_{date}_{role}_raw.tif")
+            z = (lst - mean) / std
+            write_like(f"zscore_{date}.tif", z)
+            if role != "during":
+                continue
+            anomaly = np.where(np.isfinite(z), z > config.ZSCORE_THRESHOLD, False)
+            write_like(f"anomaly_{date}.tif", anomaly)
+            anomaly_union |= anomaly
+            z_stats[date] = {
+                "anomaly_ha": round(float(anomaly.sum() * px_ha)),
+                "z_max": round(float(np.nanmax(z)), 1),
+                "lst_max_c": round(float(np.nanmax(lst)), 1),
+            }
+            print(f"during {date}: {z_stats[date]}", file=sys.stderr)
 
     # --- dNBR: pre (Jul 14) vs post (Aug 7), same path/row -------------------
     (pre_date, _), (post_date, _) = scenes_by_role("pre")[0], scenes_by_role("post")[0]
